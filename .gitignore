@@ -1,0 +1,4 @@
+build/
+assets/tachie/
+__pycache__/
+*.pyc
