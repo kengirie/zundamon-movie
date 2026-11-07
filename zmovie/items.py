@@ -19,11 +19,11 @@ def Card(lines, y, h, size=56, border="w", icon=None, **kw):
     return _base("card", lines=lines, y=y, h=h, size=size, border=border, icon=icon, **kw)
 
 
-def Counter(n, y, size=150, prefix="", suffix="", color="p", **kw):
-    """0 から n まで数え上げる数字。"""
+def Counter(n, y, size=150, prefix="", suffix="", color="p", comma=False, **kw):
+    """0 から n まで数え上げる数字。comma=True で 3 桁区切り。"""
     kw.setdefault("anim", "pop")
     return _base("counter", n=n, y=y, size=size, prefix=prefix, suffix=suffix,
-                 color=color, **kw)
+                 color=color, comma=comma, **kw)
 
 
 def Strike(text, y, size=80, x=100, **kw):

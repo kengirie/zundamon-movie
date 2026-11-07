@@ -37,6 +37,8 @@ ap.add_argument("--speed", type=float, default=1.25)
 ap.add_argument("--pause", type=float, default=1.0)
 ap.add_argument("--max-sec", type=float, default=100.0)
 ARGS = ap.parse_args() if __name__ == "__main__" else None
+if ARGS:
+    BUILD = os.path.join(BUILD, ARGS.project)  # プロジェクトごとに分ける
 
 _TL = None
 
@@ -61,12 +63,17 @@ def build_timeline(project, speed, pause):
                 it["t"] = PAD_PRE + v["cues"][pi] + it["delay"]
                 it["part"] = pi
                 items.append(it)
+        extra = {k: sc[k] for k in ("news_no", "category", "cat_color", "headline", "source", "jingle")
+                 if k in sc}
         scenes.append(dict(idx=si, name=sc["name"], chip=sc.get("chip"), title=sc.get("title"),
                            enter=sc.get("enter", False), voice=v, nfr=nfr, dur=dur,
-                           start=gt, items=items, parts=[p[0] for p in sc["parts"]]))
+                           start=gt, items=items, parts=[p[0] for p in sc["parts"]], **extra))
         gt += dur
-    nchips = max(s["chip"] or 0 for s in scenes)
-    return dict(scenes=scenes, total=gt, credit=f"VOICEVOX:ずんだもん\n{P.TACHIE_CREDIT}",
+    theme = getattr(P, "THEME", {})
+    R.THEME.clear()
+    R.THEME.update(theme)
+    nchips = max(max(s["chip"] or 0, s.get("news_no", 0)) for s in scenes)
+    return dict(theme=theme, scenes=scenes, total=gt, credit=f"VOICEVOX:ずんだもん\n{P.TACHIE_CREDIT}",
                 nchips=nchips, output=P.OUTPUT_NAME, speed=speed, pause=pause)
 
 
@@ -138,7 +145,12 @@ def scene_audio(sc):
     v = sc["voice"]["wav"]
     off = int(PAD_PRE * SR)
     a[off:off + len(v)] += v[:n - off]
-    for it in sc["items"]:
+    events = [dict(se=it.get("se"), t=it["t"]) for it in sc["items"]]
+    if sc.get("jingle"):
+        events.append(dict(se="jingle", t=0.0))
+    if sc.get("news_no"):
+        events.append(dict(se="whoosh", t=0.0))
+    for it in events:
         se = it.get("se")
         if se:
             x = A.SFX[se]() * A.SFX_GAIN[se]
@@ -223,6 +235,9 @@ def step_check():
     problems = []
     # 文字化け（フォントに無い記号）
     texts = [sc["title"] or "" for sc in tl["scenes"]] + [tl["credit"]]
+    texts += [str(v) for v in tl["theme"].values()]
+    texts += [sc.get(k, "") for sc in tl["scenes"] for k in ("headline", "source", "category")]
+    texts += ["NEWS"]
     for sc in tl["scenes"]:
         for it in sc["items"]:
             texts += [it.get("text", ""), *it.get("lines", []), it.get("prefix", ""), it.get("suffix", "")]
@@ -237,10 +252,10 @@ def step_check():
         path = os.path.join(BUILD, "check", f"{sc['idx']:02d}_{sc['name']}.png")
         fr.convert("RGB").save(path)
         # 検査する要素（画面座標でのインクのマスク）
-        els = []
-        if sc["title"]:
-            im = R.title_img(sc["title"])
-            els.append(("タイトル", im, (R.CX - im.width // 2, 128)))
+        els = list(R.static_elements(sc, tl["nchips"]))
+        if R.is_news():
+            hdr = Image.new("RGBA", (R.W, R.TICKER_Y + R.TICKER_H + 6), (255, 255, 255, 255))
+            els.append(("ヘッダー（ロゴ・テロップ）", hdr, (0, 0)))
         latest = {}
         for it in sc["items"]:
             if it["kind"] == "fig" and it["t"] <= t:
@@ -260,6 +275,9 @@ def step_check():
             y0, x0 = max(0, y), max(0, x)
             y1, x1 = min(R.H, y + h), min(R.W, x + w)
             m[y0:y1, x0:x1] = a[y0 - y:y1 - y, x0 - x:x1 - x]
+            if label.startswith("ヘッダー"):  # 画面幅いっぱいの飾り。重なりの検査だけに使う
+                masks.append((label, m))
+                continue
             if y + h > R.H or x + w > R.W or x < 0 or y < 0:
                 problems.append(f"[{sc['idx']}] はみ出し（画面外）: {label}")
             if m[:, R.SAFE_R:].any():
@@ -306,7 +324,8 @@ def step_render():
     # 音声は全体をまとめて作る（BGM をシーンをまたいで途切れさせないため）
     voice = np.concatenate([scene_audio(sc) for sc in tl["scenes"]])
     total_n = len(voice)
-    music = A.bgm(total_n / SR)[:total_n]
+    style = tl["theme"].get("style")
+    music = (A.bgm_news if style == "news" else A.bgm)(total_n / SR)[:total_n]
     music = np.pad(music, (0, total_n - len(music)))
     intervals = [(sc["start"] + PAD_PRE, sc["start"] + PAD_PRE + sc["voice"]["dur"]) for sc in tl["scenes"]]
     music *= A.duck_envelope(total_n, intervals, -8) * A.db(-17)

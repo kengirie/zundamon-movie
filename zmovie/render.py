@@ -21,6 +21,12 @@ COLORS = {
     "w": (245, 247, 255), "y": (255, 216, 77), "c": (92, 214, 255), "p": (255, 111, 174),
     "g": (91, 227, 125), "r": (255, 90, 90), "m": (150, 162, 200),
 }
+# 白い帯の上で使う濃い色（ニュースの見出し用）
+COLORS_ON_WHITE = {
+    "w": (20, 28, 60), "y": (196, 110, 0), "c": (0, 120, 190), "p": (214, 40, 120),
+    "g": (20, 150, 60), "r": (210, 40, 40), "m": (100, 110, 140),
+}
+THEME = {}  # make_video.py がプロジェクトの THEME を入れる。style="news" でニュース番組風
 FONT_DIR = "/usr/share/fonts/opentype/noto"
 FONT_FILES = {False: f"{FONT_DIR}/NotoSansCJK-Medium.ttc", True: f"{FONT_DIR}/NotoSansCJK-Bold.ttc"}
 if not os.path.exists(FONT_FILES[False]):
@@ -74,8 +80,9 @@ def plain(text):
     return re.sub(r"\[(\w)\]|\[/\]", "", text)
 
 
-def draw_rich(lines, size, bold=False, align="center", line_gap=1.25, shadow=True):
+def draw_rich(lines, size, bold=False, align="center", line_gap=1.25, shadow=True, palette=None):
     """リッチテキストを透明画像に描いて返す。"""
+    pal = palette or COLORS
     f = font(size, bold)
     widths = [sum(f.getlength(s) for s, _ in segs) for segs in lines]
     lh = int(size * line_gap)
@@ -89,7 +96,7 @@ def draw_rich(lines, size, bold=False, align="center", line_gap=1.25, shadow=Tru
         for s, c in segs:
             if shadow:
                 d.text((x + 3, y + 4), s, font=f, fill=(0, 0, 0, 140))
-            d.text((x, y), s, font=f, fill=COLORS[c])
+            d.text((x, y), s, font=f, fill=pal[c])
             x += f.getlength(s)
     return im
 
@@ -158,7 +165,8 @@ def make_layer(it):
 
 
 def counter_img(it, v):
-    return draw_rich(parse(f"{it['prefix']}[{it['color']}]{v}[/]{it['suffix']}"), it["size"], True)
+    num = f"{v:,}" if it.get("comma") else str(v)
+    return draw_rich(parse(f"{it['prefix']}[{it['color']}]{num}[/]{it['suffix']}"), it["size"], True)
 
 
 # ---------------------------------------------------------------- 図：リレー
@@ -264,6 +272,124 @@ def title_img(text):
     return draw_rich(parse(text), 78, True)
 
 
+# ---------------------------------------------------------------- ニュース番組風の部品
+def is_news():
+    return THEME.get("style") == "news"
+
+
+def title_y():
+    return 172 if is_news() else 128
+
+
+@lru_cache(None)
+def logo_img(program):
+    f = font(40, True)
+    w = int(f.getlength(program)) + 56
+    im = Image.new("RGBA", (w, 66), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.rounded_rectangle([0, 0, w - 1, 65], 14, fill=(96, 176, 56, 255))
+    d.rectangle([0, 58, w - 1, 65], fill=COLORS["y"])
+    d.text((28, 2), program, font=f, fill=(255, 255, 255))
+    return im
+
+
+TICKER_Y, TICKER_H = 98, 52
+
+
+@lru_cache(None)
+def ticker_img(text):
+    f = font(32, True)
+    w = int(f.getlength(text)) + 40
+    im = Image.new("RGBA", (w, TICKER_H), (0, 0, 0, 0))
+    ImageDraw.Draw(im).text((0, 4), text, font=f, fill=COLORS["y"])
+    return im
+
+
+@lru_cache(None)
+def ticker_label(text):
+    f = font(30, True)
+    w = int(f.getlength(text)) + 40
+    im = Image.new("RGBA", (w + 16, TICKER_H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.polygon([(0, 0), (w, 0), (w + 16, TICKER_H // 2), (w, TICKER_H), (0, TICKER_H)], fill=(220, 40, 60))
+    d.text((20, 5), text, font=f, fill=(255, 255, 255))
+    return im
+
+
+@lru_cache(None)
+def news_badge(no, total, cat, cat_color):
+    f = font(34, True)
+    a = f"NEWS {no} / {total}"
+    wa = int(f.getlength(a)) + 44
+    wc = int(f.getlength(cat)) + 44
+    im = Image.new("RGBA", (wa + 16 + wc, 60), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.rounded_rectangle([0, 0, wa - 1, 59], 12, fill=(220, 40, 60))
+    d.text((22, 4), a, font=f, fill=(255, 255, 255))
+    d.rounded_rectangle([wa + 16, 0, wa + 16 + wc - 1, 59], 12, outline=COLORS[cat_color], width=4,
+                        fill=(20, 30, 70))
+    d.text((wa + 16 + 22, 4), cat, font=f, fill=COLORS[cat_color])
+    return im
+
+
+@lru_cache(None)
+def headline_img(text, cat_color):
+    """テレビのテロップ風の白い見出し帯。"""
+    txt = draw_rich(parse(text), 52, True, "left", line_gap=1.3, shadow=False, palette=COLORS_ON_WHITE)
+    w, h = X1 - X0, txt.height + 36
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.rectangle([8, 8, w - 1, h - 1], fill=(0, 0, 0, 110))
+    d.rectangle([0, 0, w - 9, h - 9], fill=(244, 246, 252))
+    d.rectangle([0, 0, 16, h - 9], fill=COLORS[cat_color])
+    im.alpha_composite(txt, (36, (h - 8 - txt.height) // 2))
+    return im
+
+
+@lru_cache(None)
+def source_img(text):
+    txt = draw_rich(parse(text, "m"), 32, False, "left", line_gap=1.35, shadow=False)
+    w, h = max(440, txt.width + 40), txt.height + 28
+    im = rounded_box(w, h, "m", fill=(10, 16, 40, 220), r=16, bw=2)
+    im.alpha_composite(txt, (20, 14))
+    return im
+
+
+def static_elements(scene, nchips):
+    """シーンに固定で出る要素 [(名前, 画像, 座標)]。描画と検査の両方で使う。"""
+    els = []
+    if is_news() and scene.get("news_no"):
+        els.append(("NEWSバッジ", news_badge(scene["news_no"], nchips, scene["category"], scene["cat_color"]),
+                    (X0, 172)))
+        els.append(("見出し", headline_img(scene["headline"], scene["cat_color"]), (X0, 246)))
+        els.append(("出典", source_img(scene["source"]), (X0, 1190)))
+    elif scene.get("chip"):
+        els.append(("チップ", chip_img(scene["chip"], nchips), (X0, 44)))
+    if scene.get("title"):
+        im = title_img(scene["title"])
+        els.append(("タイトル", im, (CX - im.width // 2, title_y())))
+    return els
+
+
+def draw_header(fr, gt, total, credit):
+    d = ImageDraw.Draw(fr)
+    if is_news():
+        fr.alpha_composite(logo_img(THEME["program"]), (20, 22))
+        d.rectangle([0, TICKER_Y, W, TICKER_Y + TICKER_H], fill=(6, 10, 28))
+        tk = ticker_img(THEME["ticker"])
+        x = 200 - int(gt * 150) % tk.width
+        while x < W:
+            fr.alpha_composite(tk, (x, TICKER_Y + 4))
+            x += tk.width
+        fr.alpha_composite(ticker_label(THEME["date_short"]), (0, TICKER_Y))
+        d.line([0, TICKER_Y, W, TICKER_Y], fill=COLORS["y"], width=2)
+        d.line([0, TICKER_Y + TICKER_H, W, TICKER_Y + TICKER_H], fill=COLORS["y"], width=2)
+    d.rectangle([0, 0, W, 12], fill=(40, 52, 96))
+    d.rectangle([0, 0, int(W * min(1, gt / total)), 12], fill=COLORS["y"])
+    cr = credit_img(credit)
+    fr.alpha_composite(cr, (W - cr.width - 24, 22 if is_news() else 34))
+
+
 # ---------------------------------------------------------------- 立ち絵
 class Tachie:
     def __init__(self, folder):
@@ -323,17 +449,13 @@ def compose(scene, t, gt, total, tachie, mouth, jumps, enter_t, credit, nchips):
     """scene: 計算済みシーン, t: シーン内時刻, gt: 全体時刻"""
     fr = background().copy()
     d = ImageDraw.Draw(fr)
-    # 進行バー
-    d.rectangle([0, 0, W, 12], fill=(40, 52, 96))
-    d.rectangle([0, 0, int(W * min(1, gt / total)), 12], fill=COLORS["y"])
-    if scene["chip"]:
-        fr.alpha_composite(chip_img(scene["chip"], nchips), (X0, 44))
-    cr = credit_img(credit)
-    fr.alpha_composite(cr, (W - cr.width - 24, 34))
-    if scene["title"]:
-        u = min(1, t / 0.3)
-        place(fr, title_img(scene["title"]), (CX - title_img(scene["title"]).width // 2, 128),
-              alpha=u, dy=(1 - ease_out(u)) * 30)
+    draw_header(fr, gt, total, credit)
+    for k, (_, im, xy) in enumerate(static_elements(scene, nchips)):
+        u = min(1, max(0, (t - 0.08 * k) / 0.3))
+        if is_news() and scene.get("news_no"):  # 見出し帯は左からスライドイン
+            place(fr, im, (xy[0] - (1 - ease_out(u)) * 120, xy[1]), alpha=u)
+        else:
+            place(fr, im, xy, alpha=u, dy=(1 - ease_out(u)) * 30)
 
     # 同じ名前の図は最後に出たものだけ表示
     latest_fig = {}

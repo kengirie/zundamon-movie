@@ -170,3 +170,100 @@ def duck_envelope(n, intervals, depth_db=-8, ramp=0.15):
     on = np.convolve(on, np.ones(k) / k, mode="same")
     g = 1 - (1 - db(depth_db)) * np.clip(on, 0, 1)
     return g.astype(np.float32)
+
+
+# ------------------------------------------------------------------ ニュース番組風
+def sfx_jingle():
+    """オープニングのジングル。明るい和音を駆け上がって最後に伸ばす。"""
+    out = np.zeros(int(2.2 * SR))
+    seq = [(0.00, [60, 64, 67]), (0.16, [62, 65, 69]), (0.32, [64, 67, 72]), (0.56, [65, 69, 72, 77])]
+    for i, (st, notes) in enumerate(seq):
+        last = i == len(seq) - 1
+        ln = 1.6 if last else 0.3
+        t = _t(ln)
+        env = np.minimum(1, t / 0.008) * np.exp(-t * (1.8 if last else 9))
+        for m in notes:
+            f = midi(m + 12)
+            ph = 2 * np.pi * f * t
+            x = signal.sawtooth(ph) * 0.4 + np.sin(ph) * 0.6 + 0.2 * np.sin(2 * ph)
+            s = int(st * SR)
+            out[s:s + len(t)] += lowpass(x, 5000) * env * 0.12
+    t = _t(0.5)  # ティンパニ風の低い一打
+    out[:len(t)] += np.sin(2 * np.pi * (70 + 40 * np.exp(-t * 20)) * t) * np.exp(-t * 6) * 0.5
+    return out.astype(np.float32)
+
+
+def sfx_whoosh():
+    """ニュースが切り替わるときの「シュッ」。"""
+    t = _t(0.45)
+    x = rng.standard_normal(len(t))
+    out = np.zeros_like(x)
+    # 周波数を上げていくバンドパスを短い区間ごとにかける
+    seg = SR // 50
+    for k in range(0, len(x), seg):
+        u = k / len(x)
+        fc = 400 + 5000 * u
+        out[k:k + seg] = bandpass(x[k:k + seg + 200], fc * 0.6, fc * 1.4)[:len(out[k:k + seg])]
+    env = np.sin(np.pi * np.minimum(1, t / 0.45)) ** 2
+    return (out * env * 0.5).astype(np.float32)
+
+
+SFX["jingle"] = sfx_jingle
+SFX["whoosh"] = sfx_whoosh
+SFX_GAIN["jingle"] = db(-2)
+SFX_GAIN["whoosh"] = db(-8)
+
+
+def bgm_news(duration, bpm=112):
+    """ニュース番組風の BGM。4 つ打ち＋8 分音符のシンセ＋パッド。途中で無音にならない。"""
+    beat = 60 / bpm
+    bar = beat * 4
+    n = int((duration + 1) * SR)
+    out = np.zeros(n)
+    chords = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]]  # Am F C G
+    roots = [45, 41, 36, 43]
+
+    def add(x, start):
+        s = int(start * SR)
+        if s >= n:
+            return
+        e = min(n, s + len(x))
+        out[s:e] += x[:e - s]
+
+    k, tb = 0, 0.0
+    while tb < duration + 1:
+        ch = chords[k % 4]
+        t = _t(bar + 0.2)
+        penv = np.minimum(1, t / 0.2) * np.minimum(1, (bar + 0.2 - t) / 0.2)
+        for m in ch:  # パッド
+            f = midi(m)
+            add((signal.sawtooth(2 * np.pi * f * t) * 0.3 + np.sin(2 * np.pi * f * 1.003 * t)) * penv * 0.03, tb)
+        for e in range(8):  # 8 分音符のシンセ
+            m = ch[[0, 1, 2, 1, 0, 2, 1, 2][e]] + 12
+            t = _t(beat * 0.45)
+            f = midi(m)
+            x = (signal.square(2 * np.pi * f * t, 0.3) * 0.3 + np.sin(2 * np.pi * f * t)) * np.exp(-t * 14)
+            add(lowpass(x, 3500) * 0.05, tb + e * beat / 2)
+        for e in range(8):  # ベース
+            t = _t(beat * 0.45)
+            f = midi(roots[k % 4])
+            x = np.tanh(2 * np.sin(2 * np.pi * f * t)) * np.minimum(1, t / 0.005) * np.exp(-t * 6)
+            add(x * 0.12, tb + e * beat / 2)
+        for b in range(4):  # 4 つ打ち＋ハイハット＋2・4 拍のクラップ
+            bt = tb + b * beat
+            t = _t(0.3)
+            f = 48 + 80 * np.exp(-t * 35)
+            add(np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 11) * 0.28, bt)
+            t = _t(0.05)
+            add(highpass(rng.standard_normal(len(t)), 8000) * np.exp(-t * 80) * 0.05, bt + beat / 2)
+            if b in (1, 3):
+                t = _t(0.18)
+                add(bandpass(rng.standard_normal(len(t)), 1000, 4000) * np.exp(-t * 25) * 0.1, bt)
+        tb += bar
+        k += 1
+    out += lowpass(rng.standard_normal(n), 2000) * 0.002
+    out = lowpass(out, 6000)[:int(duration * SR)]
+    t = np.arange(len(out)) / SR
+    out *= np.minimum(1, t / 0.5) * np.minimum(1, (duration - t) / 1.5)
+    out /= np.max(np.abs(out)) + 1e-9
+    return out.astype(np.float32)
