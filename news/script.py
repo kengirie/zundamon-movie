@@ -7,7 +7,7 @@
 from zmovie.items import T, Card, Counter
 
 OUTPUT_NAME = "tech_news_20261107"
-TACHIE_CREDIT = "立ち絵：坂本アヒル"
+TACHIE_CREDIT = "立ち絵：坂本アヒル様"
 THEME = dict(
     style="news",
     program="ずんだもん テックニュース",

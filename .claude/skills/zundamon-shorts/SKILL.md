@@ -81,7 +81,7 @@ python make_video.py verify --project <project>
 ## 守ること
 
 - 画面の下 380px・右 150px には重要な文字を置かない（右上のクレジットとテロップは例外）
-- 右上のクレジット「VOICEVOX:ずんだもん」「立ち絵：坂本アヒル」は消さない（`TACHIE_CREDIT`）
-- 立ち絵は `assets/source/zundamon_sakamoto_ahiru.png`（坂本アヒル氏作）。別の絵を使うときは `python -m zmovie.tachie --image <画像> --mouth x,y,w,h` で作り直し、クレジットと README の出典も変える
+- 右上のクレジット「VOICEVOX:ずんだもん」「立ち絵：坂本アヒル様」は消さない（`TACHIE_CREDIT`）
+- 立ち絵は `assets/source/zundamon_sakamoto_ahiru.png`（坂本アヒル様作）。別の絵を使うときは `python -m zmovie.tachie --image <画像> --mouth x,y,w,h` で作り直し、クレジットと README の出典も変える
 - 効果音の使い分け：文字が出る＝小さな音（tick）、強調＝ポン（pon）、成功＝キラン（kiran）、失敗＝低いブー（boo）
 - 事実は確認できた情報源の範囲で書く。不確かな数字は「〜とされる」「〜そうなのだ」にする

@@ -14,7 +14,7 @@
 from zmovie.items import T, Card, Counter, Strike, Fig
 
 OUTPUT_NAME = "nostr_shorts"
-TACHIE_CREDIT = "立ち絵：坂本アヒル"
+TACHIE_CREDIT = "立ち絵：坂本アヒル様"
 
 # VOICEVOX に渡す前に置き換える読み
 READINGS = {

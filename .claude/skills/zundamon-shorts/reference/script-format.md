@@ -8,7 +8,7 @@
 from zmovie.items import T, Card, Counter, Strike, Fig
 
 OUTPUT_NAME = "nostr_shorts"            # output/<これ>.mp4
-TACHIE_CREDIT = "立ち絵：坂本アヒル"     # 右上のクレジット（2 行目）
+TACHIE_CREDIT = "立ち絵：坂本アヒル様"     # 右上のクレジット（2 行目）
 READINGS = {"Nostr": "のすたー"}         # VOICEVOX に渡す前に置き換える。上から順に置き換えるので長い語を先に
 THEME = dict(style="news", ...)         # 省略すると解説モードの見た目
 SCENES = [ ... ]

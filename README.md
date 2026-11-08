@@ -52,7 +52,7 @@ python make_video.py verify   # 4. 長さ・音量（-14 LUFS）・無音・口�
 | `zmovie/render.py` | Pillow で1コマずつ描く（文字・カード・図・進行バー・立ち絵） |
 | `zmovie/audio.py` | ローファイ調 BGM と効果音（文字・ポン・キラン・ブー）をプログラムで合成 |
 | `zmovie/tachie.py` | 立ち絵の背景抜き・切り離し・口パク用3枚の生成 |
-| `assets/source/zundamon_sakamoto_ahiru.png` | 立ち絵の元画像（坂本アヒル氏作） |
+| `assets/source/zundamon_sakamoto_ahiru.png` | 立ち絵の元画像（坂本アヒル様作） |
 | `assets/tachie/` | 元画像から作った口パク用3枚（開き・半開き・閉じ）と口の位置 |
 | `make_video.py` | 全体の手順 |
 
@@ -60,10 +60,10 @@ python make_video.py verify   # 4. 長さ・音量（-14 LUFS）・無音・口�
 
 | 素材 | 出典 | 動画内の表記 |
 |---|---|---|
-| 立ち絵（`assets/source/zundamon_sakamoto_ahiru.png` と、そこから作った `assets/tachie/`） | ずんだもん立ち絵素材 / 作：坂本アヒル | 立ち絵：坂本アヒル |
+| 立ち絵（`assets/source/zundamon_sakamoto_ahiru.png` と、そこから作った `assets/tachie/`） | ずんだもん立ち絵素材 / 作：坂本アヒル様 | 立ち絵：坂本アヒル様 |
 | ナレーション音声 | VOICEVOX（https://voicevox.hiroshiba.jp/）・音声ライブラリ「ずんだもん」 | VOICEVOX:ずんだもん |
 | キャラクター「ずんだもん」 | 東北ずん子・ずんだもんプロジェクト（https://zunko.jp/）。利用はキャラクター利用ガイドライン（https://zunko.jp/guideline.html）に従う | － |
 | 日本語フォント | Noto Sans CJK JP（Google / Adobe、SIL Open Font License） | － |
 | BGM・効果音 | `zmovie/audio.py` でプログラム生成（外部素材なし） | － |
 
-動画を公開するときは、右上のクレジット（「VOICEVOX:ずんだもん」「立ち絵：坂本アヒル」）を消さないこと。立ち絵を他の絵に替えた場合は、この表と原稿の `TACHIE_CREDIT` を書き換える。
+動画を公開するときは、右上のクレジット（「VOICEVOX:ずんだもん」「立ち絵：坂本アヒル様」）を消さないこと。立ち絵を他の絵に替えた場合は、この表と原稿の `TACHIE_CREDIT` を書き換える。
