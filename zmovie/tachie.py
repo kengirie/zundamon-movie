@@ -1,11 +1,11 @@
 """ずんだもんの立ち絵を口パク用の 3 枚（open / half / closed）に分ける。
 
 使い方:
-  # 手元の立ち絵画像から作る（背景つきでも可）。口の位置は x,y,w,h（元画像のピクセル）
-  python -m zmovie.tachie --image zundamon.png --mouth 410,520,90,60
+  # 立ち絵画像から作る（背景つきでも可）。口の位置は x,y,w,h（元画像のピクセル、口の線を含む）
+  python -m zmovie.tachie --image assets/source/zundamon_sakamoto_ahiru.png --mouth 464,474,64,62
 
-
-出力先: assets/tachie/{open,half,closed}.png （リポジトリには入れない）
+出力先: assets/tachie/{open,half,closed}.png と meta.json（口の位置）
+元画像: assets/source/zundamon_sakamoto_ahiru.png（坂本アヒル氏作。出典は README を参照）
 """
 import argparse
 import json

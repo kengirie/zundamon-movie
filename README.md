@@ -12,12 +12,23 @@
 - フォント Noto Sans CJK JP（`apt-get install fonts-noto-cjk`）
 - VOICEVOX Engine（`docker run -d -p 50021:50021 voicevox/voicevox_engine:cpu-latest`）
 
+## Claude Code のスキル
+
+`.claude/skills/zundamon-shorts/` にスキルがある。Claude Code でこのリポジトリを開き、「ずんだもんで〇〇の解説動画を作って」「今日のテックニュースを動画にして」と頼むと、環境の準備から書き出し・確認まで同じ手順で進める。
+
+- `SKILL.md` … 全体の手順
+- `reference/script-format.md` … 原稿ファイルの書き方（要素・色・座標・読み方）
+- `reference/news-mode.md` … ニュース番組モード（Hacker News・はてブからニュースを選ぶ手順と構成）
+- `scripts/setup.sh` … ffmpeg・フォント・Python ライブラリ・VOICEVOX・立ち絵を準備する
+
 ## 作り方
 
 ```bash
-# 0. 立ち絵を口パク用の3枚（開き・半開き・閉じ）に分ける。立ち絵画像はリポジトリに入れない
-#    --mouth は元画像での口の範囲 x,y,w,h（口の線を含む）
-python -m zmovie.tachie --image zundamon.png --mouth 464,474,64,62
+# 0. 環境の準備（VOICEVOX の起動、立ち絵の口パク用3枚の生成など）
+bash .claude/skills/zundamon-shorts/scripts/setup.sh
+
+#    立ち絵を別の画像で作り直すとき（--mouth は元画像での口の範囲 x,y,w,h、口の線を含む）
+python -m zmovie.tachie --image assets/source/zundamon_sakamoto_ahiru.png --mouth 464,474,64,62
 
 python make_video.py voice    # 1. ナレーション合成・長さの表・カナと文字のタイミング確認
 python make_video.py check    # 2. 各シーンの静止画を build/check/ に出して自動検査
@@ -41,6 +52,18 @@ python make_video.py verify   # 4. 長さ・音量（-14 LUFS）・無音・口�
 | `zmovie/render.py` | Pillow で1コマずつ描く（文字・カード・図・進行バー・立ち絵） |
 | `zmovie/audio.py` | ローファイ調 BGM と効果音（文字・ポン・キラン・ブー）をプログラムで合成 |
 | `zmovie/tachie.py` | 立ち絵の背景抜き・切り離し・口パク用3枚の生成 |
+| `assets/source/zundamon_sakamoto_ahiru.png` | 立ち絵の元画像（坂本アヒル氏作） |
+| `assets/tachie/` | 元画像から作った口パク用3枚（開き・半開き・閉じ）と口の位置 |
 | `make_video.py` | 全体の手順 |
 
-クレジット: VOICEVOX:ずんだもん / 立ち絵：坂本アヒル
+## リファレンス（出典）
+
+| 素材 | 出典 | 動画内の表記 |
+|---|---|---|
+| 立ち絵（`assets/source/zundamon_sakamoto_ahiru.png` と、そこから作った `assets/tachie/`） | ずんだもん立ち絵素材 / 作：坂本アヒル | 立ち絵：坂本アヒル |
+| ナレーション音声 | VOICEVOX（https://voicevox.hiroshiba.jp/）・音声ライブラリ「ずんだもん」 | VOICEVOX:ずんだもん |
+| キャラクター「ずんだもん」 | 東北ずん子・ずんだもんプロジェクト（https://zunko.jp/）。利用はキャラクター利用ガイドライン（https://zunko.jp/guideline.html）に従う | － |
+| 日本語フォント | Noto Sans CJK JP（Google / Adobe、SIL Open Font License） | － |
+| BGM・効果音 | `zmovie/audio.py` でプログラム生成（外部素材なし） | － |
+
+動画を公開するときは、右上のクレジット（「VOICEVOX:ずんだもん」「立ち絵：坂本アヒル」）を消さないこと。立ち絵を他の絵に替えた場合は、この表と原稿の `TACHIE_CREDIT` を書き換える。
