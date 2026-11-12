@@ -4,6 +4,7 @@
 
 - `output/nostr_shorts.mp4` … 「Nostr 解説（日本のアクティブユーザー約200人）」の完成動画（約93秒）
 - `output/tech_news_20261107.mp4` … ニュース番組風「ずんだもんテックニュース 2026/11/7」（約97秒。Hacker News とはてブの話題から5本）
+- `output/bouquet_shorts.mp4` … 「配信サーバがいない静的サイトをスマホだけで表示するビューワー Bouquet」解説（約100秒。元記事：https://zenn.dev/kengirie/articles/9d4eb11d3c5cf9 ）
 
 ## 必要なもの
 
@@ -36,7 +37,7 @@ python make_video.py render   # 3. output/<名前>.mp4 に書き出し
 python make_video.py verify   # 4. 長さ・音量（-14 LUFS）・無音・口パクを確認
 ```
 
-どの原稿を使うかは `--project` で選ぶ（`nostr` / `news`）。例：`python make_video.py render --project news`
+どの原稿を使うかは `--project` で選ぶ（`nostr` / `news` / `bouquet`）。例：`python make_video.py render --project news`
 
 話速などを変えたときは `build/<project>/settings.json` を消してから実行する（`--speed 1.25 --pause 1.0 --max-sec 100`）。
 
@@ -48,6 +49,7 @@ python make_video.py verify   # 4. 長さ・音量（-14 LUFS）・無音・口�
 |---|---|
 | `nostr/script.py` | Nostr 解説の原稿と画面構成（シーンごとのナレーションと画面要素、読み方の置き換え） |
 | `news/script.py` | テックニュース 2026/11/7 の原稿と画面構成 |
+| `bouquet/script.py` | Bouquet 解説の原稿と画面構成 |
 | `zmovie/voice.py` | VOICEVOX で合成し、アクセント句ごとのタイミングから文字を出す時刻を求める |
 | `zmovie/render.py` | Pillow で1コマずつ描く（文字・カード・図・進行バー・立ち絵） |
 | `zmovie/audio.py` | ローファイ調 BGM と効果音（文字・ポン・キラン・ブー）をプログラムで合成 |

@@ -226,7 +226,76 @@ def fig_relays(stage, h, t):
     return im
 
 
-FIGS = {"relays": fig_relays}
+def fig_phone_flow(stage, h, t):
+    """stage1: リレーから目次 / 2: Blossom から実体 / 3: 指紋チェック / 4: スマホ内で表示"""
+    w = X1 - X0
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    dim = (90, 100, 130)
+    f_big, f_mid, f_small = font(44, True), font(32), font(24)
+
+    def ctext(x, y, s, f, fill):
+        d.text((x - f.getlength(s) / 2, y), s, font=f, fill=fill)
+
+    def arrow(p, q, color, width=6):
+        d.line([p, q], fill=color, width=width)
+        ang = math.atan2(q[1] - p[1], q[0] - p[0])
+        for sg in (-1, 1):
+            a = ang + math.pi + sg * 0.45
+            d.line([q, (q[0] + 24 * math.cos(a), q[1] + 24 * math.sin(a))], fill=color, width=width)
+
+    def packets(p, q, color):
+        for k in range(2):
+            u = (t * 0.9 + k * 0.5) % 1.0
+            x, y = p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u
+            d.ellipse([x - 9, y - 9, x + 9, y + 9], fill=color)
+
+    # 上の 2 つの置き場所
+    srcs = [(200, "リレー", "目次", "y", 1), (650, "Blossom", "実体（ファイル）", "c", 2)]
+    px, py, pw, ph = w // 2, 280, 270, 400  # スマホ（上端中央の座標）
+    for x, name, sub, col, st in srcs:
+        on = stage >= st
+        c = COLORS[col] if on else dim
+        d.rounded_rectangle([x - 160, 10, x + 160, 160], 22, fill=(32, 46, 96, 255), outline=c, width=5)
+        ctext(x, 30, name, f_big, c)
+        ctext(x, 95, sub, f_mid, COLORS["w"] if on else dim)
+        p, q = (x, 168), (px + (-70 if st == 1 else 70), py - 8)
+        arrow(p, q, (COLORS["w"] + (230,)) if on else dim)
+        if on and stage <= 2:
+            packets(p, q, c)
+    # スマホ
+    d.rounded_rectangle([px - pw // 2, py, px + pw // 2, py + ph], 36, fill=(18, 24, 50, 255),
+                        outline=COLORS["w"], width=6)
+    sx0, sy0, sx1, sy1 = px - pw // 2 + 18, py + 40, px + pw // 2 - 18, py + ph - 40
+    d.rounded_rectangle([sx0, sy0, sx1, sy1], 12, fill=(40, 54, 104, 255))
+    if stage in (1, 2):
+        for k, line in enumerate(["/index.html", "/style.css", "/logo.png"]):
+            d.text((sx0 + 14, sy0 + 16 + k * 36), line, font=f_small, fill=COLORS["y"])
+        if stage == 2:
+            for k in range(3):
+                x0 = sx0 + 20 + k * 70
+                d.rectangle([x0, sy0 + 150, x0 + 50, sy0 + 210], outline=COLORS["c"], width=4)
+                d.line([x0 + 10, sy0 + 170, x0 + 40, sy0 + 170], fill=COLORS["c"], width=3)
+                d.line([x0 + 10, sy0 + 185, x0 + 40, sy0 + 185], fill=COLORS["c"], width=3)
+    elif stage == 3:
+        cx, cy, r = px, sy0 + 120, 70
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=COLORS["g"])
+        d.line([cx - 35, cy + 2, cx - 8, cy + 30, cx + 38, cy - 28], fill=(20, 40, 30), width=14, joint="curve")
+        ctext(px, sy0 + 210, "指紋OK", f_mid, COLORS["g"])
+    else:  # 組み立てたサイト
+        d.rectangle([sx0, sy0, sx1, sy0 + 50], fill=COLORS["p"])
+        d.rectangle([sx0 + 20, sy0 + 70, sx1 - 20, sy0 + 170], fill=(92, 214, 255, 255))
+        for k in range(3):
+            d.line([sx0 + 20, sy0 + 195 + k * 26, sx1 - 20 - k * 40, sy0 + 195 + k * 26], fill=COLORS["w"], width=8)
+    # 下のキャプション
+    caps = {1: ("① 目次をもらう", "y"), 2: ("② 実体を集める", "c"),
+            3: ("③ 指紋で本物か確認", "g"), 4: ("④ スマホ内で組み立て表示", "p")}
+    s, col = caps[stage]
+    ctext(w // 2, py + ph + 24, s, font(50, True), COLORS[col])
+    return im
+
+
+FIGS = {"relays": fig_relays, "phone_flow": fig_phone_flow}
 
 
 # ---------------------------------------------------------------- 固定部分
